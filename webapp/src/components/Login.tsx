@@ -9,24 +9,55 @@ import useAuth from "../hooks/useAuth";
 
 function Login() {
   const [user, setUser] = useState({ username: "", password: "" });
+  const [image, setImage] = useState<File>();
+  const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+    setUser((prevUser) => ({ ...prevUser, [e.target.name]: e.target.value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files) {
+      setImage(e.target.files[0]);
+    }
   };
 
   const handleLogin = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.preventDefault();
-    try {
-      const response = await axiosInstance.post("/auth/login", { ...user });
-      auth.login(response.data.token, response.data.user);
-    toast("Successfully logged In!", { type: "success" });
+    if (!user.password && !image) {
+      toast("Please enter the password or upload an image", { type: "error" });
+      return;
+    }
 
-      console.log(response.data);
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("username", user.username);
+      if (user.password) {
+        formData.append("password", user.password);
+      }
+      if (image) {
+        formData.append("image", image);
+      }
+
+      const response = await axiosInstance.post("/auth/login", formData);
+      auth.login(response.data.token, response.data.user);
+      toast("Successfully logged In!", { type: "success" });
+
       setUser({ username: "", password: "" });
-    } catch (error) {
+      setImage(undefined);
+    } catch (error: any) {
+      const errorMessage =
+        (error.response && error.response.data.message) || "An error occurred";
+      toast(errorMessage, { type: "error" });
       console.log(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -79,14 +110,40 @@ function Login() {
               />
             </div>
 
+            <div className="form-control">
+              <label className="label" htmlFor="image">
+                <span className="label-text">Upload an image</span>
+              </label>
+              <input
+                type="file"
+                id="image"
+                name="image"
+                className="input input-bordered rounded-none"
+                onChange={handleImageChange}
+              />
+              {image && (
+                <div className="uploaded-image">
+                  <img
+                    src={URL.createObjectURL(image)}
+                    alt="Uploaded"
+                    className="mt-4 max-h-64 filter blur-sm blur-2"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="form-control mt-6">
-              <button className="btn btn-primary" onClick={handleLogin}>
-                Login
+              <button
+                className="btn btn-primary"
+                onClick={handleLogin}
+                disabled={isLoading}
+              >
+                {isLoading ? "Logging in..." : "Login"}
               </button>
             </div>
             <p className="mt-6 text-center">
               Don&apos;t have an account?{" "}
-              <span className=" font-semibold underline">
+              <span className="font-semibold underline">
                 <Link to="/signup">Register</Link>
               </span>
             </p>

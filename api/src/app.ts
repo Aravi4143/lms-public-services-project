@@ -6,6 +6,7 @@ import { notFoundHandler } from "./middleware/not-found.middleware";
 import morgan from "morgan";
 import healthchecksRouter from "./healthchecks";
 import coursesRouter from "./courses/courses.router";
+import faceRouter from "./face/face.router";
 import { authMiddleware } from "./common/auth";
 import { authRouter } from "./users/auth.router";
 
@@ -25,9 +26,11 @@ app.use(express.json());
 app.use("/api", healthchecksRouter);
 app.use("/api/auth", authRouter);
 
+app.use("/api/face", faceRouter)
 // Authenticated routes
 app.use(authMiddleware);
 app.use("/api/courses", coursesRouter);
+
 
 // Error and 404
 app.use(errorHandler);
