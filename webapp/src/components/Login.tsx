@@ -2,25 +2,36 @@ import loginJpg from "../assets/login-page-hero.jpg";
 import logoSrc from "../assets/logo.png";
 import { toast } from "react-toastify";
 
-import { useState } from "react";
+import CameraCapture from "./CameraCapture";
+import { useRef, useState, useEffect } from "react";
 import { Link, Navigate } from "@tanstack/react-location";
 import axiosInstance from "../lib/http-client";
 import useAuth from "../hooks/useAuth";
+import { Buffer } from "buffer";
+import FileSaver from "file-saver";
 
 function Login() {
   const [user, setUser] = useState({ username: "", password: "" });
-  const [image, setImage] = useState<File>();
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+  const [capturedImage, setCapturedImage] = useState<File>();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUser((prevUser) => ({ ...prevUser, [e.target.name]: e.target.value }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCapture = async (
+    imageFile: File,
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
     e.preventDefault();
-    if (e.target.files) {
-      setImage(e.target.files[0]);
+    if (imageFile) {
+      setCapturedImage(imageFile);
+      // await handleLogin(e);
+    } else {
+      // The face was not successfully identified
+      toast("Please retake the image", { type: "error" });
+      // startCamera();
     }
   };
 
@@ -28,8 +39,8 @@ function Login() {
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.preventDefault();
-    if (!user.password && !image) {
-      toast("Please enter the password or upload an image", { type: "error" });
+    if (!user.password && !capturedImage) {
+      toast("Please enter the password or capture an image", { type: "error" });
       return;
     }
 
@@ -41,8 +52,8 @@ function Login() {
       if (user.password) {
         formData.append("password", user.password);
       }
-      if (image) {
-        formData.append("image", image);
+      if (capturedImage) {
+        formData.append("image", capturedImage);
       }
 
       const response = await axiosInstance.post("/auth/login", formData);
@@ -50,7 +61,7 @@ function Login() {
       toast("Successfully logged In!", { type: "success" });
 
       setUser({ username: "", password: "" });
-      setImage(undefined);
+      setCapturedImage(undefined);
     } catch (error: any) {
       const errorMessage =
         (error.response && error.response.data.message) || "An error occurred";
@@ -64,7 +75,7 @@ function Login() {
   if (auth.token) return <Navigate to="/" />;
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <div className="flex flex-col lg:flex-row-reverse">
         <div className="w-full lg:max-w-[50%]">
           <img
@@ -73,7 +84,7 @@ function Login() {
             className="w-full lg:min-h-[100vh]"
           />
         </div>
-        <div className=" w-full p-4">
+        <div className="w-full p-4">
           <img src={logoSrc} alt="website logo" />
           <div className="card-body m-auto mt-28 max-w-lg">
             <p className="text-2xl">
@@ -110,25 +121,34 @@ function Login() {
               />
             </div>
 
-            <div className="form-control">
-              <label className="label" htmlFor="image">
-                <span className="label-text">Upload an image</span>
+            <div
+              className="form-control"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "50px",
+              }}
+            >
+              <label className="label">
+                <span className="label-text">OR</span>
               </label>
-              <input
-                type="file"
-                id="image"
-                name="image"
-                className="input input-bordered rounded-none"
-                onChange={handleImageChange}
-              />
-              {image && (
+              {capturedImage ? (
                 <div className="uploaded-image">
                   <img
-                    src={URL.createObjectURL(image)}
-                    alt="Uploaded"
-                    className="mt-4 max-h-64 filter blur-sm blur-2"
+                    src={URL.createObjectURL(capturedImage)}
+                    alt="Captured"
+                    className="mt-4 max-h-64 blur-0 blur-sm filter"
                   />
                 </div>
+              ) : (
+                <CameraCapture
+                  onCapture={async (imageFile, e) => {
+                    await handleCapture(imageFile, e); // Wait for handleCapture to finish
+                    // handleLogin(e); // Call handleLogin after handleCapture
+                  }}
+                />
               )}
             </div>
 

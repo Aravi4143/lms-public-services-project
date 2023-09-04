@@ -1,5 +1,11 @@
 import { RequestHandler } from 'express';
 import detectFace from '../common/detect-face';
+import { z } from 'zod';
+import { writeFile } from "fs";
+
+const FormDataSchema = z.object({
+  image: z.string().min(1).optional(),
+});
 
 export const validateFaceHandler: RequestHandler = async (req, res, next) => {
   try {
