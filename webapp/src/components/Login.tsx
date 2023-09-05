@@ -7,14 +7,13 @@ import { useRef, useState, useEffect } from "react";
 import { Link, Navigate } from "@tanstack/react-location";
 import axiosInstance from "../lib/http-client";
 import useAuth from "../hooks/useAuth";
-import { Buffer } from "buffer";
-import FileSaver from "file-saver";
 
 function Login() {
   const [user, setUser] = useState({ username: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const [capturedImage, setCapturedImage] = useState<File>();
+  const loginButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUser((prevUser) => ({ ...prevUser, [e.target.name]: e.target.value }));
@@ -27,13 +26,19 @@ function Login() {
     e.preventDefault();
     if (imageFile) {
       setCapturedImage(imageFile);
-      // await handleLogin(e);
     } else {
       // The face was not successfully identified
       toast("Please retake the image", { type: "error" });
       // startCamera();
     }
   };
+
+  useEffect(() => {
+    // Check if capturedImage is defined and the "Login" button ref exists
+    if (capturedImage && loginButtonRef.current) {
+      loginButtonRef.current.click();
+    }
+  }, [capturedImage]);
 
   const handleLogin = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
@@ -154,6 +159,7 @@ function Login() {
 
             <div className="form-control mt-6">
               <button
+                ref={loginButtonRef}
                 className="btn btn-primary"
                 onClick={handleLogin}
                 disabled={isLoading}
