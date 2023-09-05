@@ -13,8 +13,6 @@ const LoginDataSchema = z.object({
   image: z.string().min(1).optional(),
 });
 
-const errorMessage = "Password or username is invalid";
-
 export const loginHandler: RequestHandler = async (req, res, next) => {
   try {
     const loginData = LoginDataSchema.parse(req.body);
@@ -27,7 +25,7 @@ export const loginHandler: RequestHandler = async (req, res, next) => {
     // If no user found, return error
     if (!foundUser) {
       return res.status(401).json({
-        message: errorMessage,
+        message: "Invalid username",
       });
     }
 
@@ -36,6 +34,11 @@ export const loginHandler: RequestHandler = async (req, res, next) => {
 
     if (loginData.password) {
       isPasswordValid = await comparePassword(loginData.password, foundUser.passwordHash);
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          message: "Invalid password",
+        });
+      }
     } else if (req.file) {
       const faceDetectResult: any = await detectFace(req.file.path);
 
@@ -49,14 +52,12 @@ export const loginHandler: RequestHandler = async (req, res, next) => {
       const response: any = await client.getEntity(loginData.username, loginData.username);
       const expectedDescriptor = new Float32Array(response.imageDescriptor.split(",").map(Number))
       isImageValid = await matchFace(actualDescriptor, expectedDescriptor);
+      if (!isImageValid) {
+        return res.status(401).json({
+          message: "Invalid image captured",
+        });
+      }
     }
-
-    if (!(isPasswordValid || isImageValid)) {
-      return res.status(401).json({
-        message: errorMessage,
-      });
-    }
-
     // Create token
     const token = createToken({
       id: foundUser.id,

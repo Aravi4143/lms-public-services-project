@@ -11,13 +11,20 @@ import useAuth from "../hooks/useAuth";
 function Login() {
   const [user, setUser] = useState({ username: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [retake, setRetake] = useState(true);
   const auth = useAuth();
   const [capturedImage, setCapturedImage] = useState<File>();
   const loginButtonRef = useRef<HTMLButtonElement>(null);
+  // console.log(capturedImage)
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUser((prevUser) => ({ ...prevUser, [e.target.name]: e.target.value }));
   };
+
+
+  const retakeClicked=()=>{
+    setCapturedImage(undefined)
+  }
 
   const handleCapture = async (
     imageFile: File,
@@ -27,7 +34,7 @@ function Login() {
     if (imageFile) {
       setCapturedImage(imageFile);
     } else {
-      // The face was not successfully identified
+            // The face was not successfully identified
       toast("Please retake the image", { type: "error" });
       // startCamera();
     }
@@ -44,6 +51,11 @@ function Login() {
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.preventDefault();
+    if (!user.username) {
+      toast("Please enter the username", { type: "error" });
+      return;
+    } 
+
     if (!user.password && !capturedImage) {
       toast("Please enter the password or capture an image", { type: "error" });
       return;
@@ -69,8 +81,9 @@ function Login() {
       setCapturedImage(undefined);
     } catch (error: any) {
       const errorMessage =
-        (error.response && error.response.data.message) || "An error occurred";
+      (error.response && error.response.data.message) || "An error occurred";
       toast(errorMessage, { type: "error" });
+      setCapturedImage(undefined)   
       console.log(error);
     } finally {
       setIsLoading(false);
@@ -156,9 +169,9 @@ function Login() {
                 />
               )}
             </div>
-
+            {retake&&<button className="btn btn-primary" onClick={retakeClicked}>retake</button>}
             <div className="form-control mt-6">
-              <button
+                            <button
                 ref={loginButtonRef}
                 className="btn btn-primary"
                 onClick={handleLogin}
