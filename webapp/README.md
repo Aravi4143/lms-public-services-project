@@ -8,7 +8,7 @@
 | [dev](https://calm-pebble-0c3131110-dev.centralus.1.azurestaticapps.net/) | dev        |
 | [qa](https://calm-pebble-0c3131110-dev.centralus.1.azurestaticapps.net/)  | qa         |
 
-## Run project locally
+## Run project locally 
 
 - Install node modules with `npm install`
 - Run local dev server with `npm dev`
