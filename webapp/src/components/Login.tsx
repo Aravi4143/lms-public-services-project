@@ -64,16 +64,13 @@ function Login() {
     setIsLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("username", user.username);
-      if (user.password) {
-        formData.append("password", user.password);
-      }
-      if (capturedImage) {
-        formData.append("image", capturedImage);
+      const customUser: any = {
+        username: user.username,
+        password: user.password ?? null,
+        image: capturedImage ?? null
       }
 
-      const response = await axiosInstance.post("/auth/login", formData);
+      const response = await axiosInstance.post("/auth/login", { ...customUser });
       auth.login(response.data.token, response.data.user);
       toast("Successfully logged In!", { type: "success" });
 
