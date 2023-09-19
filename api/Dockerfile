@@ -1,7 +1,7 @@
 # Docker file nodejs azure app services
 FROM node:16
 #Clone repo manually
-RUN ls -a
+RUN ls -R
 # Create app directory
 WORKDIR /app
 # Install app dependencies
