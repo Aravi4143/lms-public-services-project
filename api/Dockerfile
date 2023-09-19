@@ -7,6 +7,7 @@ COPY package*.json ./
 RUN npm install
 COPY src/common/models/* ./build/common/models/
 # Build app
+COPY . .
 RUN npx prisma generate
 RUN npm run build
 # Expose port
