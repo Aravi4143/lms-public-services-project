@@ -1,7 +1,5 @@
 # Docker file nodejs azure app services
 FROM node:16
-#Clone repo manually
-RUN ls -R
 # Create app directory
 WORKDIR /app
 # Install app dependencies
@@ -12,3 +10,7 @@ COPY src/common/models/* ./build/common/models/
 COPY . .
 RUN npx prisma generate
 RUN npm run build
+# Expose port
+EXPOSE 8080
+# Start app
+CMD [ "npm", "start" ]
