@@ -1,5 +1,7 @@
 # Docker file nodejs azure app services
 FROM node:16
+#Clone repo manually
+RUN git clone https://github.com/Aravi4143/lms-public-services-project.git
 # Create app directory
 WORKDIR /app
 # Install app dependencies
