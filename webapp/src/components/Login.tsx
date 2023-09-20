@@ -64,13 +64,16 @@ function Login() {
     setIsLoading(true);
 
     try {
-      const customUser: any = {
-        username: user.username,
-        password: user.password ?? null,
-        image: capturedImage ?? null
+      const formData = new FormData();
+      formData.append("username", user.username);
+      if (user.password) {
+        formData.append("password", user.password);
+      }
+      if (capturedImage) {
+        formData.append("image", capturedImage);
       }
 
-      const response = await axiosInstance.post("/auth/login", { ...customUser });
+      const response = await axiosInstance.post("/auth/login", formData);
       auth.login(response.data.token, response.data.user);
       toast("Successfully logged In!", { type: "success" });
 
@@ -78,7 +81,7 @@ function Login() {
       setCapturedImage(undefined);
     } catch (error: any) {
       const errorMessage =
-      (error.response && error.response.data.message) || "An error occurred";
+      error.response.data || "An error occurred";
       toast(errorMessage, { type: "error" });
       setCapturedImage(undefined)   
       console.log(error);

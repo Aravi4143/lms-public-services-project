@@ -3,14 +3,12 @@ import { z } from "zod";
 import { db } from "../common/db";
 import { comparePassword, createToken } from "../common/auth";
 import detectFace from "../common/detect-face";
-import tableClient from "../common/table-client";
-import { TableClient } from "@azure/data-tables";
 import matchFace from "../common/match-face";
 
 const LoginDataSchema = z.object({
   username: z.string().min(1),
-  password: z.string().min(1).optional(),
-  image: z.string().min(1).optional(),
+  password: z.string().optional(),
+  image: z.any().optional(),
 });
 
 export const loginHandler: RequestHandler = async (req, res, next) => {
@@ -40,17 +38,18 @@ export const loginHandler: RequestHandler = async (req, res, next) => {
         });
       }
     } else if (req.file) {
-      const faceDetectResult: any = await detectFace(req.file.path);
+      if (!foundUser.descriptor) {
+        return res.status(400).send("No face authentication found for this user");
+      }
 
+      const faceDetectResult: any = await detectFace(req.file.path);
       if (!faceDetectResult || !faceDetectResult.descriptor) {
         return res.status(400).json({ message: 'No face detected in the image' });
       }
 
       console.log("Face detected successfully");
       const actualDescriptor = faceDetectResult.descriptor;
-      const client: TableClient = tableClient("customers");
-      const response: any = await client.getEntity(loginData.username, loginData.username);
-      const expectedDescriptor = new Float32Array(response.imageDescriptor.split(",").map(Number))
+      const expectedDescriptor = new Float32Array(foundUser.descriptor.split(",").map(Number))
       isImageValid = await matchFace(actualDescriptor, expectedDescriptor);
       if (!isImageValid) {
         return res.status(401).json({

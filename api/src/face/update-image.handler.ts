@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import detectFace from '../common/detect-face';
+import { db } from "../common/db";
 import { z } from 'zod';
 import { TableClient } from '@azure/data-tables';
 import tableClient from '../common/table-client';
@@ -18,18 +18,27 @@ export const updateImageHandler: RequestHandler = async (req, res, next) => {
         "🚀 ~ file: update-image.handler.ts ~ line 14 ~ updateImageHandler:RequestHandler= ~ req.username",
         registerData.username
       );
+    const foundUser = await db.user.findUnique({
+      where: {
+        username: registerData.username,
+      },
+    });
 
-    const client: TableClient = tableClient("customers");
-    const entity: any = {
-        partitionKey: registerData.username,
-        rowKey: registerData.username,
-        image: registerData.image,
-        imageDescriptor: registerData.imageDescriptor,
-        identificationComplete: registerData.imageDescriptor.length > 0 ? true : false
-      };
+    if (!foundUser) {
+      return res.status(401).json({
+        message: "Invalid username",
+      });
+    }
 
-    await updateEntity(client, entity);
-    console.log("Updated entity in customers data table for user: ", entity.PartitionKey);
+    const user = await db.user.update({
+      where: {
+        username: registerData.username,
+      },
+      data: {
+        descriptor: registerData.imageDescriptor,
+      }
+    })
+
     return res.json({
         status: "success"
       });

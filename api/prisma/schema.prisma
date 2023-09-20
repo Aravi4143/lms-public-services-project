@@ -45,4 +45,5 @@ model User {
   name         String
   username     String @unique
   passwordHash String
+  descriptor   String?
 }
