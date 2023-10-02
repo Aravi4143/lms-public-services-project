@@ -26,11 +26,10 @@ app.use(express.json());
 app.use("/api", healthchecksRouter);
 app.use("/api/auth", authRouter);
 
-app.use("/api/face", faceRouter)
 // Authenticated routes
 app.use(authMiddleware);
 app.use("/api/courses", coursesRouter);
-
+app.use("/api/face", faceRouter)
 
 // Error and 404
 app.use(errorHandler);
