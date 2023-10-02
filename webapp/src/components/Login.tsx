@@ -15,7 +15,6 @@ function Login() {
   const auth = useAuth();
   const [capturedImage, setCapturedImage] = useState<File>();
   const loginButtonRef = useRef<HTMLButtonElement>(null);
-  // console.log(capturedImage)
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUser((prevUser) => ({ ...prevUser, [e.target.name]: e.target.value }));
@@ -23,7 +22,8 @@ function Login() {
 
 
   const retakeClicked=()=>{
-    setCapturedImage(undefined)
+    setCapturedImage(undefined);
+    setRetake(false);
   }
 
   const handleCapture = async (
@@ -34,10 +34,10 @@ function Login() {
     if (imageFile) {
       setCapturedImage(imageFile);
     } else {
-            // The face was not successfully identified
+      // The face was not successfully identified
       toast("Please retake the image", { type: "error" });
-      // startCamera();
     }
+    setRetake(true);
   };
 
   useEffect(() => {
@@ -81,7 +81,7 @@ function Login() {
       setCapturedImage(undefined);
     } catch (error: any) {
       const errorMessage =
-      error.response.data || "An error occurred";
+      error.response.data.message || "An error occurred";
       toast(errorMessage, { type: "error" });
       setCapturedImage(undefined)   
       console.log(error);

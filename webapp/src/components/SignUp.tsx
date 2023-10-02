@@ -1,31 +1,42 @@
-import { FormEvent, useState } from "react";
+import { useRef, useState } from "react";
 import loginJpg from "../assets/login-page-hero.jpg";
 import logoSrc from "../assets/logo.png";
 import { Link } from "@tanstack/react-location";
 import axiosInstance from "../lib/http-client";
 import useAuth from "../hooks/useAuth";
 import { toast } from "react-toastify";
+import CameraCapture from "./CameraCapture";
 
 function SignUp() {
   const auth = useAuth();
   const [user, setUser] = useState({ username: "", name: "", password: "" });
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState<File>();
   const [descriptor, setDescriptor] = useState("");
+  const [retake, setRetake] = useState(true);
   const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState(false);
-  const [imageInput, setImageInput] = useState<HTMLInputElement | null>(null);
+  const registerButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUser((prevUser) => ({ ...prevUser, [e.target.name]: e.target.value }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const retakeClicked=()=>{
+    setImage(undefined)
+    setRetake(false);
+  }
+
+  const handleCapture = async (
+    imageFile: File,
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
     e.preventDefault();
-    if (e.target.files) {
-      setImage(URL.createObjectURL(e.target.files[0]));
-      setValidationResult(false); // Reset validation result when image changes
+    if (imageFile) {
+      setImage(imageFile);
+      await handleFaceIdentify(e, imageFile);
+    } else {
+      toast("Please retake the image", { type: "error" });
     }
-    setImageInput(e.target);
+    setRetake(true);
   };
 
   const handleRegister = async (
@@ -37,43 +48,38 @@ function SignUp() {
         name: user.name,
         username: user.username,
         password: user.password,
-        image: image,
         imageDescriptor: descriptor
       };
       const response = await axiosInstance.post("/auth/register", { ...customUser });
       auth.login(response.data.token, response.data.user);
       toast("Successfully Registered!", { type: "success" });
-      console.log(response.data);
+      setImage(undefined);
       setUser({ username: "", name: "", password: "" });
       setDescriptor("");
+      console.log(response.data);
     } catch (error) {
       console.log(error);
     }
   };
 
-  const handleFaceIdentify = async (e: FormEvent<HTMLFormElement>) => {
+  const handleFaceIdentify = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, imageFile: File) => {
     e.preventDefault();
-    if (!image) {
+    if (!imageFile) {
       toast("Please upload an image to identify the face", { type: "error" });
       return;
     }
     setValidating(true);
     const formData = new FormData();
-    if (imageInput && imageInput.files) {
-      formData.append("image", imageInput.files[0]);
-    }
+    formData.append("image", imageFile);
 
     try {
       const response = await axiosInstance.post("/face/identify", formData);
       if (response.data.success) {
         setDescriptor(response.data.faceDescriptor);
-        setValidationResult(true);
         toast(response.data.success, { type: "success" });
       } else {
-        setValidationResult(false); 
         toast(response.data.error, { type: "error" });
       }
-      console.log(response.data);
     } catch (error: any) {
       if (error.response) {
         const { status } = error.response;
@@ -86,9 +92,10 @@ function SignUp() {
         toast("Unexpected Error", { type: "error" });
       }
       console.log(error);
-      setValidationResult(false);
+      setImage(undefined);
+    } finally {
+      setValidating(false);
     }
-    setValidating(false);
   };
 
   return (
@@ -152,59 +159,36 @@ function SignUp() {
               />
             </div>
 
-            <form
-              method="POST"
-              encType="multipart/form-data"
-              onSubmit={handleFaceIdentify}
-              className="flex flex-col items-center mt-4"
-            >
-              <div className="form-control w-full">
+              <div className="form-control">
                 <label className="label" htmlFor="image">
                   <span className="label-text">Choose an image:</span>
                 </label>
-                <input
-                  type="file"
-                  id="image"
-                  name="image"
-                  placeholder="JPG | JPEG FILES ONLY"
-                  className="input input-bordered rounded-none"
-                  onChange={handleImageChange}
-                />
-              </div>
-              <button
-                type="submit"
-                className="btn btn-primary "
-                disabled={!image || validating || (validationResult && !imageInput?.files)}
-              >
-                {validating
-                  ? "Validating..."
-                  : validationResult
-                  ? "Validated"
-                  : "Validate"}
-              </button>
-              {image && (
-                <>
-                  {validationResult ? (
-                    <span className="text-green-500 ml-2">✅</span>
-                  ) : (
-                    <span className="text-red-500 ml-2">↻</span>
-                  )}
+                {image ? (
+                <div className="uploaded-image">
                   <img
-                    src={image}
-                    alt="uploaded image"
-                    className="mt-4 max-h-64 filter blur-sm blur-2"
+                    src={URL.createObjectURL(image)}
+                    alt="Captured"
+                    className="mt-4 max-h-64 blur-0 blur-sm filter"
                   />
-                </>
+                </div>
+              ) : (
+                <CameraCapture
+                  onCapture={async (imageFile: any, e: any) => {
+                    await handleCapture(imageFile, e);
+                  }}
+                />
               )}
-            </form>
+              </div>
+              {retake&&<button className="btn btn-primary" onClick={retakeClicked}>retake</button>}
 
             <div className="form-control mt-6">
               <button
                 onClick={handleRegister}
                 className="btn btn-primary "
                 disabled={validating}
+                ref={registerButtonRef}
               >
-                Register
+                {validating ? "Onboarding..." : "Register"}
               </button>
             </div>
 

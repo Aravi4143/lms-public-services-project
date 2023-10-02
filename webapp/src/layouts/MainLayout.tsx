@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import logoSrc from "../assets/logo.png";
 import {
   Link,
@@ -11,6 +11,7 @@ import { FaExternalLinkAlt } from "react-icons/fa";
 import useAuth from "../hooks/useAuth";
 import { toast } from "react-toastify";
 import axiosInstance from "../lib/http-client";
+import CameraCapture from "../components/CameraCapture";
 
 type MainLayoutProps = {
   children: React.ReactNode;
@@ -24,13 +25,20 @@ function MainLayout(props: MainLayoutProps) {
 
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState("");
+  const [uploadedImage, setUploadedImage] = useState<File>();
   const [isImageValid, setImageValid] = useState(false);
   const [descriptor, setDescriptor] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [retake, setRetake] = useState(false);
 
   const handleLogout = () => {
+    setShowProfileDropdown(false);
     auth.logout();
+  };
+
+  const retakeClicked = () => {
+    setUploadedImage(undefined);
+    setRetake(false);
   };
 
   const handleUpdateFaceClick = () => {
@@ -38,80 +46,33 @@ function MainLayout(props: MainLayoutProps) {
     setIsPopupOpen(true);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      const formData = new FormData();
-      formData.append("image", e.target.files[0]);
-
-      try {
-        setIsUpdating(true);
-        setUploadedImage(URL.createObjectURL(e.target.files[0]));
-
-        const response = await axiosInstance.post("/face/identify", formData);
-        if (response.data.success) {
-          setDescriptor(response.data.faceDescriptor);
-          setImageValid(true);
-          setIsUpdating(false);
-        } else {
-          toast(response.data.error, { type: "error" });
-          setIsUpdating(false);
-        }
-        console.log(response.data.success);
-      } catch (error: any) {
-        if (error.response) {
-          const { status } = error.response;
-          if (status === 400) {
-            toast("Bad Request", { type: "warning" });
-          } else {
-            toast("Unexpected Error", { type: "error" });
-          }
-        } else {
-          toast("Unexpected Error", { type: "error" });
-        }
-        console.log(error);
-        setIsUpdating(false);
-      }
-    }
-  };
-
   const handleUpdateButtonClick = async () => {
     if (!uploadedImage) {
       toast("Please upload an image to update the face", { type: "error" });
       return;
     }
+    setValidating(true);
 
     const customUser: any = {
       username: auth.user ? auth.user.username : null,
-      image: uploadedImage,
       imageDescriptor: descriptor,
     };
 
-    const response = await axiosInstance.post("/face/update", { ...customUser });
+    const response = await axiosInstance.post("/face/update", {
+      ...customUser,
+    });
     toast("Successfully Updated!", { type: "success" });
     console.log(response.data);
+    setUploadedImage(undefined);
     setDescriptor("");
     handlePopupClose();
   };
 
   const handlePopupClose = () => {
     setIsPopupOpen(false);
-    setUploadedImage("");
+    setUploadedImage(undefined);
     setImageValid(false);
   };
-
-  useEffect(() => {
-    if (isUpdating) {
-      toast.promise(
-        new Promise((resolve) => setTimeout(resolve, 2000)),
-        {
-          pending: "Validating...",
-          success: "Validation Successful",
-          error: "Validation Failed",
-        }
-      );
-    }
-  }, [isUpdating]);
 
   if (
     location.current.pathname.includes("login") ||
@@ -125,6 +86,56 @@ function MainLayout(props: MainLayoutProps) {
       to: "/login",
     });
   }
+
+  const handleCapture = async (
+    imageFile: File,
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    e.preventDefault();
+    if (imageFile) {
+      setUploadedImage(imageFile);
+      await handleFaceIdentify(e, imageFile);
+    } else {
+      toast("Please retake the image", { type: "error" });
+    }
+    setRetake(true);
+  };
+
+  const handleFaceIdentify = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, imageFile: File) => {
+    e.preventDefault();
+    if (!imageFile) {
+      toast("Please upload an image to identify the face", { type: "error" });
+      return;
+    }
+    setValidating(true);
+    const formData = new FormData();
+    formData.append("image", imageFile);
+
+    try {
+      const response = await axiosInstance.post("/face/identify", formData);
+      if (response.data.success) {
+        setDescriptor(response.data.faceDescriptor);
+        toast(response.data.success, { type: "success" });
+      } else {
+        toast(response.data.error, { type: "error" });
+      }
+    } catch (error: any) {
+      if (error.response) {
+        const { status } = error.response;
+        if (status === 400) {
+          toast("Bad Request", { type: "warning" });
+        } else {
+          toast("Unexpected Error", { type: "error" });
+        }
+      } else {
+        toast("Unexpected Error", { type: "error" });
+      }
+      console.log(error);
+      setUploadedImage(undefined);
+    } finally {
+      setValidating(false);
+    }
+  };
 
   return (
     <div>
@@ -188,7 +199,7 @@ function MainLayout(props: MainLayoutProps) {
       <div className="min-h-screen">{props.children}</div>
 
       {isPopupOpen && (
-        <div className="fixed top-0 left-0 w-full h-full bg-gray-200 bg-opacity-80 flex justify-center items-center">
+        <div className="fixed top-0 left-0 flex h-full w-full items-center justify-center bg-gray-200 bg-opacity-80">
           <div className="relative mx-auto w-96 rounded-lg bg-white p-4">
             <button
               className="absolute top-0 right-0 mt-2 mr-2 text-gray-500"
@@ -200,34 +211,57 @@ function MainLayout(props: MainLayoutProps) {
               <img
                 src="/face/fetch"
                 alt="Customer's Existing Image"
-                className="h-auto w-full rounded-md mb-4 filter blur-sm blur-2"
+                className="blur-2 mb-4 h-auto w-full rounded-md blur-sm filter"
               />
             )}
-            <input
-              type="file"
-              id="uploadImage"
-              name="uploadImage"
-              className="input input-bordered rounded-none mb-4"
-              onChange={handleImageUpload}
-            />
-            <div className="mt-4 flex items-center space-x-2">
-              {uploadedImage && (
+
+            <div className="form-control">
+              <label className="label" htmlFor="image">
+                <span className="label-text">Choose an image:</span>
+              </label>
+              {uploadedImage ? (
                 <div className="uploaded-image">
                   <img
-                    src={uploadedImage}
+                    src={URL.createObjectURL(uploadedImage)}
                     alt="Uploaded"
-                    className="mt-4 max-h-64 filter blur-sm blur-2"
+                    className="blur-2 mt-4 max-h-64 blur-sm filter"
                   />
                 </div>
+              ) : (
+                <CameraCapture
+                  onCapture={async (imageFile: any, e: any) => {
+                    await handleCapture(imageFile, e);
+                  }}
+                />
               )}
               {isImageValid && <span>&#10003;</span>}
             </div>
-            <button
-              className="btn btn-primary btn-sm mt-4"
-              onClick={handleUpdateButtonClick}
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "50px",
+              }}
             >
-              Update
-            </button>
+              {retake && (
+                <button className="btn btn-primary" onClick={retakeClicked}>
+                  retake
+                </button>
+              )}
+            </div>
+
+            <div className="form-control mt-6">
+              <button
+                className="btn btn-primary"
+                onClick={handleUpdateButtonClick}
+                disabled={validating}
+              >
+                {validating ? "Hold On..." : "Update"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -7,7 +7,6 @@ import updateEntity from '../common/update-entity';
 
 const AuthDataSchema = z.object({
     username: z.string().min(1),
-    image: z.string().min(0),
     imageDescriptor: z.string().min(0),
   });
 

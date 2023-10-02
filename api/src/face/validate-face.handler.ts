@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { writeFile } from "fs";
 
 const FormDataSchema = z.object({
-  image: z.string().min(1).optional(),
+  image: z.any().optional(),
 });
 
 export const validateFaceHandler: RequestHandler = async (req, res, next) => {
