@@ -15,17 +15,20 @@ Promise.all([
 export default async function detectFace(imagePath: any): Promise<any> {
   const image = await loadImage(imagePath);
   // Create canvas
-  const canvas = createCanvas(image.width/4, image.height/4);
+  const canvas = createCanvas(image.width/6, image.height/6);
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(image, 0, 0, image.width/4, image.height/4);
+  ctx.drawImage(image, 0, 0, image.width/6, image.height/6);
   // Convert canvas to tensor
   const tensor = faceapi.tf.browser.fromPixels(canvas);
   // Create net input
   // const netInput = faceapi.tf.expandDims(tensor);
   // Detect a single face using the tinyFaceDetector
-  const detection = await faceapi.detectSingleFace(tensor, new faceapi.TinyFaceDetectorOptions())
+  const startTime = new Date();
+  const detection = await faceapi.detectSingleFace(tensor.toFloat(), new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
     .withFaceDescriptor();
+  const endTime = new Date();
+  console.log("Detection Time in sec:", (endTime.getTime() - startTime.getTime())/1000);
 
   // Dispose the tensor to free up memory
   tensor.dispose();
