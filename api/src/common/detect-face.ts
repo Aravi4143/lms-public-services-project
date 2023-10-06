@@ -1,6 +1,7 @@
 const faceapi = require("face-api.js");
 const { createCanvas, loadImage } = require("canvas");
 const path = require("path");
+import { getConfig } from "./config";
 
 // Load models
 const MODEL_URL = path.join(__dirname, "/models");
@@ -20,11 +21,11 @@ export default async function detectFace(imagePath: any): Promise<any> {
   ctx.drawImage(image, 0, 0, image.width/6, image.height/6);
   // Convert canvas to tensor
   const tensor = faceapi.tf.browser.fromPixels(canvas);
-  // Create net input
-  // const netInput = faceapi.tf.expandDims(tensor);
   // Detect a single face using the tinyFaceDetector
   const startTime = new Date();
-  const detection = await faceapi.detectSingleFace(tensor.toFloat(), new faceapi.TinyFaceDetectorOptions())
+  const detection = await faceapi.detectSingleFace(tensor.toFloat(), new faceapi.TinyFaceDetectorOptions({
+    inputSize: getConfig("DETECT_INPUT_SIZE") // common sizes are 128, 160, 224, 320, 416, 512, 608
+    }))
     .withFaceLandmarks()
     .withFaceDescriptor();
   const endTime = new Date();
