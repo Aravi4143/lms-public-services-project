@@ -24,7 +24,7 @@ export default async function detectFace(imagePath: any): Promise<any> {
   // Detect a single face using the tinyFaceDetector
   const startTime = new Date();
   const detection = await faceapi.detectSingleFace(tensor.toFloat(), new faceapi.TinyFaceDetectorOptions({
-    inputSize: getConfig("DETECT_INPUT_SIZE") // common sizes are 128, 160, 224, 320, 416, 512, 608
+    inputSize: 128 // common sizes are 128, 160, 224, 320, 416, 512, 608
     }))
     .withFaceLandmarks()
     .withFaceDescriptor();
