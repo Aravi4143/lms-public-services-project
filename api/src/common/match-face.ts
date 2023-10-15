@@ -1,4 +1,5 @@
 import { euclideanDistance } from "face-api.js";
+import { getConfig } from "./config";
 
 export default async function matchFace(
   actual: Float32Array,
@@ -17,7 +18,7 @@ export default async function matchFace(
   console.log("Best match found while matching face: ", bestMatch);
 
   // Return the best match if the distance is below a threshold
-  if (bestMatch.distance < 0.5) {
+  if (bestMatch.distance < parseFloat(getConfig("MATCH_THRESHOLD") || "0.4")) {
     return true;
   } else {
     return false;
