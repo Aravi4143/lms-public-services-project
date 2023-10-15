@@ -4,8 +4,7 @@ import { registerHandler } from "./register.handler";
 import multer from "multer";
 
 export const authRouter = Router();
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: "uploads/" });
 
-authRouter.post("/login", upload.single('image'), loginHandler);
-authRouter.post("/register", registerHandler);
-
+authRouter.post("/login", upload.single("image"), loginHandler);
+authRouter.post("/register", upload.single("image"), registerHandler);

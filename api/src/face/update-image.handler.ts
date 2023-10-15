@@ -1,22 +1,20 @@
-import { RequestHandler } from 'express';
+import { RequestHandler } from "express";
 import { db } from "../common/db";
-import { z } from 'zod';
-import { TableClient } from '@azure/data-tables';
-import tableClient from '../common/table-client';
-import updateEntity from '../common/update-entity';
+import { z } from "zod";
+import detectFace from "../common/detect-face";
 
 const AuthDataSchema = z.object({
-    username: z.string().min(1),
-    imageDescriptor: z.string().min(0),
-  });
+  username: z.string().min(1),
+  image: z.any().optional(),
+});
 
 export const updateImageHandler: RequestHandler = async (req, res, next) => {
   try {
     const registerData = AuthDataSchema.parse(req.body);
     console.log(
-        "🚀 ~ file: update-image.handler.ts ~ line 14 ~ updateImageHandler:RequestHandler= ~ req.username",
-        registerData.username
-      );
+      "🚀 ~ file: update-image.handler.ts ~ line 15 ~ updateImageHandler:RequestHandler= ~ req.username",
+      registerData.username
+    );
     const foundUser = await db.user.findUnique({
       where: {
         username: registerData.username,
@@ -29,18 +27,34 @@ export const updateImageHandler: RequestHandler = async (req, res, next) => {
       });
     }
 
-    const user = await db.user.update({
-      where: {
-        username: registerData.username,
-      },
-      data: {
-        descriptor: registerData.imageDescriptor,
+    //Extract descriptor from image
+    if (req.file) {
+      const faceDescriptor: string | undefined = await detectFace(
+        req.file.path
+      );
+      if (!faceDescriptor) {
+        return res
+          .status(400)
+          .json({ message: "No face detected in the image" });
       }
-    })
-
-    return res.json({
-        status: "success"
+      console.log("Face detected successfully");
+      const user = await db.user.update({
+        where: {
+          username: registerData.username,
+        },
+        data: {
+          descriptor: String(faceDescriptor),
+        },
       });
+      console.log("Updated Face for the user:", user.username);
+
+      return res.json({
+        status: "success",
+      });
+    }
+    return res
+      .status(400)
+      .json({ message: "Missing Image! Please try again..." });
   } catch (error) {
     next(error);
   }

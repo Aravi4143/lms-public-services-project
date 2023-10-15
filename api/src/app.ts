@@ -29,7 +29,7 @@ app.use("/api/auth", authRouter);
 // Authenticated routes
 app.use(authMiddleware);
 app.use("/api/courses", coursesRouter);
-app.use("/api/face", faceRouter)
+app.use("/api/face", faceRouter);
 
 // Error and 404
 app.use(errorHandler);

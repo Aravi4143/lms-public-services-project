@@ -5,9 +5,10 @@
   "main": "index.js",
   "private": "true",
   "scripts": {
-    "lint": "eslint src/",
+    "format": "npx prettier --write './**/*.ts'",
+    "lint:fix": "npx eslint --ext .ts . --fix",
     "start": "prisma migrate deploy && node build/index.js",
-    "build": "tsc",
+    "build": "npm run format && npm run lint:fix && tsc",
     "build:watch": "tsc -w",
     "dev": "ts-node-dev --respawn --pretty --transpile-only --exit-child src/index.ts",
     "test": "jest",

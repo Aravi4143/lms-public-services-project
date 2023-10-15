@@ -31,7 +31,10 @@ export const loginHandler: RequestHandler = async (req, res, next) => {
     let isImageValid = false;
 
     if (loginData.password) {
-      isPasswordValid = await comparePassword(loginData.password, foundUser.passwordHash);
+      isPasswordValid = await comparePassword(
+        loginData.password,
+        foundUser.passwordHash
+      );
       if (!isPasswordValid) {
         return res.status(401).json({
           message: "Invalid password",
@@ -39,17 +42,27 @@ export const loginHandler: RequestHandler = async (req, res, next) => {
       }
     } else if (req.file) {
       if (!foundUser.descriptor) {
-        return res.status(400).send("No face authentication found for this user");
+        return res
+          .status(400)
+          .send("No face authentication found for this user");
       }
 
-      const faceDetectResult: any = await detectFace(req.file.path);
-      if (!faceDetectResult || !faceDetectResult.descriptor) {
-        return res.status(400).json({ message: 'No face detected in the image' });
+      const faceDescriptor: string | undefined = await detectFace(
+        req.file.path
+      );
+      if (!faceDescriptor) {
+        return res
+          .status(400)
+          .json({ message: "No face detected in the image" });
       }
 
       console.log("Face detected successfully");
-      const actualDescriptor = faceDetectResult.descriptor;
-      const expectedDescriptor = new Float32Array(foundUser.descriptor.split(",").map(Number))
+      const actualDescriptor = new Float32Array(
+        faceDescriptor.split(",").map(Number)
+      );
+      const expectedDescriptor = new Float32Array(
+        foundUser.descriptor.split(",").map(Number)
+      );
       isImageValid = await matchFace(actualDescriptor, expectedDescriptor);
       if (!isImageValid) {
         return res.status(401).json({

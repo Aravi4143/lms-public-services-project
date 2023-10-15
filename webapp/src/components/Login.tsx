@@ -11,7 +11,6 @@ import useAuth from "../hooks/useAuth";
 function Login() {
   const [user, setUser] = useState({ username: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
-  const [retake, setRetake] = useState(true);
   const auth = useAuth();
   const [capturedImage, setCapturedImage] = useState<File>();
   const loginButtonRef = useRef<HTMLButtonElement>(null);
@@ -19,12 +18,6 @@ function Login() {
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUser((prevUser) => ({ ...prevUser, [e.target.name]: e.target.value }));
   };
-
-
-  const retakeClicked=()=>{
-    setCapturedImage(undefined);
-    setRetake(false);
-  }
 
   const handleCapture = async (
     imageFile: File,
@@ -34,10 +27,8 @@ function Login() {
     if (imageFile) {
       setCapturedImage(imageFile);
     } else {
-      // The face was not successfully identified
       toast("Please retake the image", { type: "error" });
     }
-    setRetake(true);
   };
 
   useEffect(() => {
@@ -55,12 +46,10 @@ function Login() {
       toast("Please enter the username", { type: "error" });
       return;
     } 
-
     if (!user.password && !capturedImage) {
       toast("Please enter the password or capture an image", { type: "error" });
       return;
     }
-
     setIsLoading(true);
 
     try {
@@ -76,15 +65,12 @@ function Login() {
       const response = await axiosInstance.post("/auth/login", formData);
       auth.login(response.data.token, response.data.user);
       toast("Successfully logged In!", { type: "success" });
-
       setUser({ username: "", password: "" });
-      setCapturedImage(undefined);
     } catch (error: any) {
       const errorMessage =
-      error.response.data.message || "An error occurred";
+      error.response.data.message || "An unknown error occurred";
       toast(errorMessage, { type: "error" });
-      setCapturedImage(undefined)   
-      console.log(error);
+      setCapturedImage(undefined);
     } finally {
       setIsLoading(false);
     }
@@ -164,12 +150,10 @@ function Login() {
                 <CameraCapture
                   onCapture={async (imageFile, e) => {
                     await handleCapture(imageFile, e); // Wait for handleCapture to finish
-                    // handleLogin(e); // Call handleLogin after handleCapture
                   }}
                 />
               )}
             </div>
-            {retake&&<button className="btn btn-primary" onClick={retakeClicked}>retake</button>}
             <div className="form-control mt-6">
                             <button
                 ref={loginButtonRef}

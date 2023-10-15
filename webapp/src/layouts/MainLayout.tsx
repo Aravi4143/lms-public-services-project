@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import logoSrc from "../assets/logo.png";
 import {
   Link,
@@ -27,45 +27,49 @@ function MainLayout(props: MainLayoutProps) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<File>();
   const [isImageValid, setImageValid] = useState(false);
-  const [descriptor, setDescriptor] = useState("");
-  const [validating, setValidating] = useState(false);
-  const [retake, setRetake] = useState(false);
 
   const handleLogout = () => {
     setShowProfileDropdown(false);
     auth.logout();
   };
 
-  const retakeClicked = () => {
-    setUploadedImage(undefined);
-    setRetake(false);
-  };
-
   const handleUpdateFaceClick = () => {
-    setShowProfileDropdown(false); // Close dropdown when selecting "Update Face"
+    setShowProfileDropdown(false);
     setIsPopupOpen(true);
   };
+
+  useEffect(() => {
+    if (uploadedImage) {
+      handleUpdateButtonClick();
+    }
+  }, [uploadedImage]);
 
   const handleUpdateButtonClick = async () => {
     if (!uploadedImage) {
       toast("Please upload an image to update the face", { type: "error" });
       return;
     }
-    setValidating(true);
+    if (!auth.user) {
+      toast("Please refresh the page and try again", { type: "error" });
+      return;
+    }
 
-    const customUser: any = {
-      username: auth.user ? auth.user.username : null,
-      imageDescriptor: descriptor,
-    };
+    const formData = new FormData();
+    formData.append('image', uploadedImage);
+    formData.append('username', auth.user.username);
 
-    const response = await axiosInstance.post("/face/update", {
-      ...customUser,
-    });
-    toast("Successfully Updated!", { type: "success" });
-    console.log(response.data);
-    setUploadedImage(undefined);
-    setDescriptor("");
-    handlePopupClose();
+    try {
+      const response = await axiosInstance.post("/face/update", formData);
+      toast("Successfully Updated!", { type: "success" });
+      console.log(response.data);
+      handlePopupClose();
+    } catch (error: any) {
+      const errorMessage =
+      error.response.data.message || "An unkonown error occurred";
+      toast(errorMessage, { type: "error" });
+    } finally {
+      setUploadedImage(undefined);
+    }
   };
 
   const handlePopupClose = () => {
@@ -94,46 +98,8 @@ function MainLayout(props: MainLayoutProps) {
     e.preventDefault();
     if (imageFile) {
       setUploadedImage(imageFile);
-      await handleFaceIdentify(e, imageFile);
     } else {
       toast("Please retake the image", { type: "error" });
-    }
-    setRetake(true);
-  };
-
-  const handleFaceIdentify = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, imageFile: File) => {
-    e.preventDefault();
-    if (!imageFile) {
-      toast("Please upload an image to identify the face", { type: "error" });
-      return;
-    }
-    setValidating(true);
-    const formData = new FormData();
-    formData.append("image", imageFile);
-
-    try {
-      const response = await axiosInstance.post("/face/identify", formData);
-      if (response.data.success) {
-        setDescriptor(response.data.faceDescriptor);
-        toast(response.data.success, { type: "success" });
-      } else {
-        toast(response.data.error, { type: "error" });
-      }
-    } catch (error: any) {
-      if (error.response) {
-        const { status } = error.response;
-        if (status === 400) {
-          toast("Bad Request", { type: "warning" });
-        } else {
-          toast("Unexpected Error", { type: "error" });
-        }
-      } else {
-        toast("Unexpected Error", { type: "error" });
-      }
-      console.log(error);
-      setUploadedImage(undefined);
-    } finally {
-      setValidating(false);
     }
   };
 
@@ -207,18 +173,16 @@ function MainLayout(props: MainLayoutProps) {
             >
               &#10005;
             </button>
-            {uploadedImage && (
-              <img
-                src="/face/fetch"
-                alt="Customer's Existing Image"
-                className="blur-2 mb-4 h-auto w-full rounded-md blur-sm filter"
-              />
-            )}
-
-            <div className="form-control">
-              <label className="label" htmlFor="image">
-                <span className="label-text">Choose an image:</span>
-              </label>
+            <div
+              className="form-control"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "50px",
+              }}
+            >
               {uploadedImage ? (
                 <div className="uploaded-image">
                   <img
@@ -235,32 +199,6 @@ function MainLayout(props: MainLayoutProps) {
                 />
               )}
               {isImageValid && <span>&#10003;</span>}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "50px",
-              }}
-            >
-              {retake && (
-                <button className="btn btn-primary" onClick={retakeClicked}>
-                  retake
-                </button>
-              )}
-            </div>
-
-            <div className="form-control mt-6">
-              <button
-                className="btn btn-primary"
-                onClick={handleUpdateButtonClick}
-                disabled={validating}
-              >
-                {validating ? "Hold On..." : "Update"}
-              </button>
             </div>
           </div>
         </div>

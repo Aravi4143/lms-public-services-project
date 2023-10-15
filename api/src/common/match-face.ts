@@ -1,14 +1,14 @@
-const faceapi = require("face-api.js");
+import { euclideanDistance } from "face-api.js";
 
-export default async function matchFace(actual: Float32Array, expected: Float32Array): Promise<boolean> {
+export default async function matchFace(
+  actual: Float32Array,
+  expected: Float32Array
+): Promise<boolean> {
   // Compute distances between actualFaceDescriptor and expectedFaceDescriptor
   const distances = [];
-    distances.push({
-      distance: faceapi.euclideanDistance(
-        expected,
-        actual
-      ),
-    });
+  distances.push({
+    distance: euclideanDistance(expected, actual),
+  });
 
   // Find the person with the smallest distance
   const bestMatch = distances.reduce((best, current) =>
@@ -22,4 +22,4 @@ export default async function matchFace(actual: Float32Array, expected: Float32A
   } else {
     return false;
   }
-  }
+}

@@ -1,7 +1,7 @@
 import app from "./app";
 import { getConfig } from "./common/config";
 import redisClient from "./common/redis-client";
-import cron from 'node-cron';
+import cron from "node-cron";
 import { promises as fs } from "fs";
 import { join } from "path";
 
@@ -13,16 +13,26 @@ const PORT: number = parseInt(getConfig("PORT") as string, 10);
 
 async function main() {
   // Connect to cache server
-  await redisClient.connect().then(() => {
-    console.log(`Connected to Redis`);
-  }).catch(err => {
-    console.error('Error connecting to Redis', err);
-  });
+  await redisClient
+    .connect()
+    .then(() => {
+      console.log(`Connected to Redis`);
+    })
+    .catch((err) => {
+      console.error("Error connecting to Redis", err);
+    });
 
   cron.schedule(getConfig("PURGE_CRON_EXP") as string, async () => {
-    console.log(`Purging the face files older than ${getConfig("TTL_DAYS")} days started`);
-    await deleteOldFiles("uploads/", parseInt(getConfig("TTL_DAYS") as string, 10));
-    console.log(`Purged the face files older than ${getConfig("TTL_DAYS")} days`);
+    console.log(
+      `Purging the face files older than ${getConfig("TTL_DAYS")} days started`
+    );
+    await deleteOldFiles(
+      "uploads/",
+      parseInt(getConfig("TTL_DAYS") as string, 10)
+    );
+    console.log(
+      `Purged the face files older than ${getConfig("TTL_DAYS")} days`
+    );
   });
 
   // Start the server

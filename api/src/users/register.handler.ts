@@ -2,12 +2,13 @@ import { RequestHandler } from "express";
 import { z } from "zod";
 import { createToken, hashPassword } from "../common/auth";
 import { db } from "../common/db";
+import detectFace from "../common/detect-face";
 
 const AuthDataSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
   name: z.string().min(1),
-  imageDescriptor: z.string().min(0),
+  image: z.any().optional(),
 });
 
 export const registerHandler: RequestHandler = async (req, res, next) => {
@@ -31,13 +32,25 @@ export const registerHandler: RequestHandler = async (req, res, next) => {
     // Hash password
     const passwordHash = await hashPassword(registerData.password);
 
+    //Extract descriptor from image
+    let faceDescriptor: string | undefined;
+    if (req.file) {
+      faceDescriptor = await detectFace(req.file.path);
+      if (!faceDescriptor) {
+        return res
+          .status(400)
+          .json({ message: "No face detected in the image" });
+      }
+      console.log("Face detected successfully");
+    }
+
     // Create user
     const user = await db.user.create({
       data: {
         username: registerData.username,
         passwordHash,
         name: registerData.name,
-        descriptor: registerData.imageDescriptor || null,
+        descriptor: faceDescriptor || null,
       },
       select: {
         id: true,
